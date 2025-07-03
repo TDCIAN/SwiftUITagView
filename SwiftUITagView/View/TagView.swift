@@ -17,7 +17,8 @@ struct TagView: View {
     
     var fontSize: CGFloat = 16
     
-    // Adding Geometry Effect
+    // Adding Geometry Effect to Tag
+    @Namespace var animation
     
     var body: some View {
         
@@ -40,12 +41,21 @@ struct TagView: View {
                 }
                 .frame(width: UIScreen.main.bounds.width - 80, alignment: .leading)
                 .padding(.vertical)
+                .padding(.bottom, 20)
             }
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 8)
                     .strokeBorder(Color.gray.opacity(1), lineWidth: 1)
             )
+            .overlay(
+                Text("\(getSize(tags: tags))/\(maxLimit)")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.white)
+                    .padding(12),
+                alignment: .bottomTrailing
+            )
+            .animation(.easeInOut, value: tags)
         }
         .onChange(of: tags) { oldValue, newValue in
             // getting newly inserted value
@@ -62,7 +72,7 @@ struct TagView: View {
             // Updating size
             tags[getIndex(tag: last)].size = size.width
         }
-        .animation(.easeInOut, value: tags)
+        
     }
     
     @ViewBuilder
@@ -83,6 +93,7 @@ struct TagView: View {
                     tags.remove(at: getIndex(tag: tag))
                 }
             }
+            .matchedGeometryEffect(id: tag.id, in: animation)
     }
     
     private func getIndex(tag: Tag) -> Int {
@@ -139,7 +150,7 @@ struct TagView: View {
 
 }
 
-func addTag(text: String, fontSize: CGFloat) -> Tag {
+func addTag(tags: [Tag], text: String, fontSize: CGFloat, maxLimit: Int, completion: @escaping (Bool, Tag) -> ()) {
 
     // getting text size
     let font = UIFont.systemFont(ofSize: fontSize)
@@ -148,7 +159,23 @@ func addTag(text: String, fontSize: CGFloat) -> Tag {
     
     let size = (text as NSString).size(withAttributes: attributes)
     
-    return Tag(text: text, size: size.width)
+    let tag = Tag(text: text, size: size.width)
+    
+    if (getSize(tags: tags) + text.count) <= maxLimit {
+        completion(false, tag)
+    } else {
+        completion(true, tag)
+    }
+}
+
+func getSize(tags: [Tag]) -> Int {
+    var count: Int = 0
+    
+    tags.forEach { tag in
+        count += tag.text.count
+    }
+    
+    return count
 }
 
 #Preview {
